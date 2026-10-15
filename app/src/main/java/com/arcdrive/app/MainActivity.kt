@@ -53,6 +53,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         webView.webChromeClient = object : WebChromeClient() {
+            override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                android.util.Log.d("ArcDriveJS", "${consoleMessage?.message()} [line ${consoleMessage?.lineNumber()}]")
+                return true
+            }
+
             override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
                 AlertDialog.Builder(this@MainActivity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
                     .setMessage(message)

@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
     <title>ArcDrive UI Builder Dashboard</title>
     <style>
+        /* Disable text selection and long-press copy everywhere */
+        * {
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            -webkit-touch-callout: none !important;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -617,6 +624,22 @@
             color: #64748b;
             font-size: 11px;
             font-family: monospace;
+        }
+
+        .bt-unpair-btn {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #f87171;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-left: 8px;
+            transition: background 0.2s;
+        }
+        .bt-unpair-btn:active {
+            background: rgba(239, 68, 68, 0.35);
         }
 
         /* Settings Screen */
@@ -1257,9 +1280,13 @@ body { display:block !important; }
 
             <!-- Device Discovery State -->
             <div id="btDiscoveryState" style="display: none; flex-direction: column; height: 100%; padding: 30px 20px;">
-                <div style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">Connect Device</div>
-                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 20px;">Select your ArcDrive to pair and
-                    connect</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                    <div>
+                        <div style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 5px;">Connect Device</div>
+                        <div style="color: #94a3b8; font-size: 12px;">Select your ArcDrive to pair and connect</div>
+                    </div>
+                    <button onclick="document.getElementById('btScreen').classList.remove('open');" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px;">✕</button>
+                </div>
 
                 <!-- Scanning indicator -->
                 <div
@@ -1270,35 +1297,7 @@ body { display:block !important; }
                 </div>
 
                 <div class="bt-device-list" id="btDeviceList">
-                    <!-- Mock Devices -->
-                    <div class="bt-device-item" onclick="simulatePairing(this, 'ArcDrive_ESP_01')">
-                        <div class="bt-device-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
-                            </svg>
-                        </div>
-                        <div class="bt-device-info">
-                            <div class="bt-device-name">ArcDrive_ESP_01</div>
-                            <div class="bt-device-mac">00:1A:7D:DA:71:13</div>
-                        </div>
-                    </div>
-
-                    <div class="bt-device-item" onclick="simulatePairing(this, 'Galaxy Watch')">
-                        <div class="bt-device-icon" style="color: #64748b; background: rgba(255,255,255,0.05);">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                            </svg>
-                        </div>
-                        <div class="bt-device-info">
-                            <div class="bt-device-name" style="color:#94a3b8;">Galaxy Watch</div>
-                            <div class="bt-device-mac">AB:12:3C:D4:5E:6F</div>
-                        </div>
-                    </div>
                 </div>
-
-
             </div>
         </div>
 
@@ -1788,6 +1787,25 @@ function handleConnectToggle() {
     }
 }
 
+function simulatePairing(element, mac, name) {
+    window.connectingItem = element;
+    window.connectingItemOriginalHtml = element.innerHTML;
+    
+    const iconDiv = element.querySelector('.bt-device-icon');
+    if (iconDiv) iconDiv.innerHTML = '<div class="spinner-small"></div>';
+    const macEl = element.querySelector('.bt-device-mac');
+    if (macEl) macEl.textContent = 'Connecting to ' + (name || mac) + '...';
+
+    if (window.ArcNative && ArcNative.connect) {
+        if (window.btTimeout) clearTimeout(window.btTimeout);
+        ArcNative.connect(mac);
+    } else {
+        setTimeout(() => {
+            connectApp();
+        }, 1500);
+    }
+}
+
 window.ArcBT = {
     onDevice: function(json) {
         try {
@@ -1795,42 +1813,35 @@ window.ArcBT = {
             const list = document.getElementById('btDeviceList');
             if (!list) return;
             
-            if (list.innerHTML.includes('00:1A:7D:DA:71:13')) {
-                list.innerHTML = '';
-            }
-            
+            // Skip non-ArcDrive devices (double-check, Kotlin also filters)
+            if (!dev.name || (!dev.name.startsWith('ArcDrive') && !dev.name.startsWith('Arc'))) return;
+
             if (document.getElementById('dev_' + dev.mac.replace(/:/g, ''))) return;
 
-            const isArcDrive = dev.name && (dev.name === 'ArcDrive_1' || dev.name.startsWith('ArcDrive'));
-            
             const item = document.createElement('div');
             item.className = 'bt-device-item';
             item.id = 'dev_' + dev.mac.replace(/:/g, '');
             item.onclick = function() { simulatePairing(this, dev.mac, dev.name); };
-            
-            if (isArcDrive) {
-                item.innerHTML = `
-                    <div class="bt-device-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
-                        </svg>
-                    </div>
-                    <div class="bt-device-info">
-                        <div class="bt-device-name">${dev.name || dev.mac}</div>
-                        <div class="bt-device-mac">${dev.mac}</div>
-                    </div>`;
-                list.insertBefore(item, list.firstChild); // ArcDrive devices first
+
+            const unpairBtn = dev.bonded
+                ? `<button class="bt-unpair-btn" onclick="event.stopPropagation(); unpairDevice('${dev.mac}', '${dev.mac.replace(/:/g,'')}')" title="Forget device">✕</button>`
+                : '';
+
+            item.innerHTML = `
+                <div class="bt-device-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"></polyline>
+                    </svg>
+                </div>
+                <div class="bt-device-info">
+                    <div class="bt-device-name">${dev.name || dev.mac}</div>
+                    <div class="bt-device-mac">${dev.bonded ? '🔗 Paired' : '📡 Nearby'} · ${dev.mac}</div>
+                </div>
+                ${unpairBtn}`;
+
+            if (dev.bonded) {
+                list.insertBefore(item, list.firstChild);
             } else {
-                item.innerHTML = `
-                    <div class="bt-device-icon" style="color: #64748b; background: rgba(255,255,255,0.05);">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
-                        </svg>
-                    </div>
-                    <div class="bt-device-info">
-                        <div class="bt-device-name" style="color:#94a3b8;">${dev.name || dev.mac}</div>
-                        <div class="bt-device-mac">${dev.mac}</div>
-                    </div>`;
                 list.appendChild(item);
             }
         } catch (e) {}
@@ -1841,6 +1852,7 @@ window.ArcBT = {
         }
     },
     onConnected: function(mac, name) {
+        if (window.btTimeout) clearTimeout(window.btTimeout);
         connectApp();
         if (window.ArcNative && ArcNative.saveMac) {
             ArcNative.saveMac(mac);
@@ -1853,8 +1865,8 @@ window.ArcBT = {
             window.connectingItem.innerHTML = window.connectingItemOriginalHtml;
         }
         setAppStatus('Disconnected');
-        showToast("Connection failed");
-        initBluetoothFlow();
+        showToast("Connection failed: " + (reason || ''));
+        addHexLog("[CONNECT FAILED] " + (reason || ''));
     },
     onDisconnected: function() {
         stopDialAnimationOnly();
@@ -1877,9 +1889,16 @@ window.ArcBT = {
     },
     onErrorFrame: function() {
         addHexLog("[ERROR FRAME RECEIVED]");
+        showToast("ESP32 Error Frame");
     },
     onLog: function(text) {
         addHexLog(text);
+    },
+    onUnpaired: function(mac) {
+        const el = document.getElementById('dev_' + mac.replace(/:/g,''));
+        if (el) el.remove();
+        showToast('Device forgotten');
+        addHexLog('[UNPAIRED] ' + mac);
     }
 };
 
@@ -1889,6 +1908,17 @@ function updateScale() {
 window.addEventListener('load', updateScale);
 window.addEventListener('resize', updateScale);
 window.addEventListener('orientationchange', updateScale);
+
+// Forget/unpair a Bluetooth device via native bridge
+function unpairDevice(mac, idSuffix) {
+    if (window.ArcNative && ArcNative.unpairDevice) {
+        ArcNative.unpairDevice(mac);
+    } else {
+        // Fallback: just remove from UI list if no native bridge
+        const el = document.getElementById('dev_' + idSuffix);
+        if (el) el.remove();
+    }
+}
 
     const phoneScreen = document.getElementById('phoneScreen');
     const phoneContentArea = document.getElementById('phoneContentArea');

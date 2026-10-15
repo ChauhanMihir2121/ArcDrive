@@ -21,6 +21,7 @@ import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.Executors
@@ -47,9 +48,11 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                 val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 device?.let {
                     if (hasPermissions()) {
-                        val name = it.name ?: it.address
-                        val mac = it.address
-                        sendDeviceToJs(name, mac, false)
+                        val name = it.name ?: ""
+                        // Only show ArcDrive devices in scan results
+                        if (name.startsWith("ArcDrive") || name.startsWith("Arc")) {
+                            sendDeviceToJs(name, it.address, false)
+                        }
                     }
                 }
             } else if (intent?.action == BluetoothAdapter.ACTION_DISCOVERY_FINISHED) {
@@ -118,10 +121,12 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             return
         }
 
+        // Only show ArcDrive paired devices
         bluetoothAdapter?.bondedDevices?.forEach { device ->
-            val name = device.name ?: device.address
-            val mac = device.address
-            sendDeviceToJs(name, mac, true)
+            val name = device.name ?: ""
+            if (name.startsWith("ArcDrive") || name.startsWith("Arc")) {
+                sendDeviceToJs(name, device.address, true)
+            }
         }
 
         if (bluetoothAdapter?.isDiscovering == true) {
@@ -165,12 +170,72 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                 if (hasPermissions() && bluetoothAdapter?.isDiscovering == true) {
                     bluetoothAdapter?.cancelDiscovery()
                 }
+                // Short delay to let Bluetooth radio finish cancelling discovery
+                try { Thread.sleep(150) } catch (_: Exception) {}
 
                 val device = bluetoothAdapter?.getRemoteDevice(mac)
-                btSocket = device?.createRfcommSocketToServiceRecord(ArcProtocol.SPP_UUID)
-                btSocket?.connect()
+                    ?: throw IOException("Device not found: $mac")
+
+                var socket: BluetoothSocket? = null
+                var lastEx: Exception? = null
+
+                // Method 1: Insecure RFCOMM by UUID (recommended for ESP32 BluetoothSerial)
+                try {
+                    socket = device.createInsecureRfcommSocketToServiceRecord(ArcProtocol.SPP_UUID)
+                    socket.connect()
+                } catch (e1: Exception) {
+                    lastEx = e1
+                    try { socket?.close() } catch (_: Exception) {}
+                    socket = null
+                }
+
+                // Method 2: Secure RFCOMM by UUID
+                if (socket == null) {
+                    try {
+                        socket = device.createRfcommSocketToServiceRecord(ArcProtocol.SPP_UUID)
+                        socket.connect()
+                    } catch (e2: Exception) {
+                        lastEx = e2
+                        try { socket?.close() } catch (_: Exception) {}
+                        socket = null
+                    }
+                }
+
+                // Method 3: Direct channel 1 insecure reflection (bypasses SDP discovery failures on ESP32)
+                if (socket == null) {
+                    try {
+                        val m = device.javaClass.getMethod("createInsecureRfcommSocket", Int::class.javaPrimitiveType)
+                        val s = m.invoke(device, 1) as? BluetoothSocket
+                        s?.connect()
+                        socket = s
+                    } catch (e3: Exception) {
+                        lastEx = e3
+                        try { socket?.close() } catch (_: Exception) {}
+                        socket = null
+                    }
+                }
+
+                // Method 4: Direct channel 1 secure reflection
+                if (socket == null) {
+                    try {
+                        val m = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+                        val s = m.invoke(device, 1) as? BluetoothSocket
+                        s?.connect()
+                        socket = s
+                    } catch (e4: Exception) {
+                        lastEx = e4
+                        try { socket?.close() } catch (_: Exception) {}
+                        socket = null
+                    }
+                }
+
+                if (socket == null) {
+                    throw lastEx ?: IOException("Unable to establish RFCOMM link")
+                }
+
+                btSocket = socket
                 isConnected = true
-                val name = device?.name ?: mac
+                val name = device.name ?: mac
                 
                 activity.runOnUiThread {
                     runJs("if(window.ArcBT && window.ArcBT.onConnected) window.ArcBT.onConnected('${mac}', '${JSONObject.quote(name).drop(1).dropLast(1)}');")
@@ -180,8 +245,9 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             } catch (e: Exception) {
                 isConnected = false
                 closeSocketInternal()
+                val safeMsg = (e.message ?: "Failed").replace("'", "").take(45)
                 activity.runOnUiThread {
-                    runJs("if(window.ArcBT && window.ArcBT.onConnectFailed) window.ArcBT.onConnectFailed('exception');")
+                    runJs("if(window.ArcBT && window.ArcBT.onConnectFailed) window.ArcBT.onConnectFailed('$safeMsg');")
                 }
             }
         }
@@ -390,5 +456,31 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     @JavascriptInterface
     fun saveMac(mac: String) {
         prefs.edit().putString("saved_mac", mac).apply()
+    }
+
+    @JavascriptInterface
+    fun clearSavedMac() {
+        prefs.edit().remove("saved_mac").apply()
+    }
+
+    /** Unpair / forget a bonded Bluetooth device by MAC address.
+     *  Uses reflection as there is no public API for this on Android. */
+    @SuppressLint("MissingPermission")
+    @JavascriptInterface
+    fun unpairDevice(mac: String) {
+        try {
+            val device = bluetoothAdapter?.getRemoteDevice(mac) ?: return
+            val m = device.javaClass.getMethod("removeBond")
+            m.invoke(device)
+            // Also clear saved mac if it matches
+            if (prefs.getString("saved_mac", null) == mac) clearSavedMac()
+            activity.runOnUiThread {
+                runJs("if(window.ArcBT && window.ArcBT.onUnpaired) window.ArcBT.onUnpaired('$mac');")
+            }
+        } catch (e: Exception) {
+            activity.runOnUiThread {
+                runJs("if(window.ArcBT && window.ArcBT.onConnectFailed) window.ArcBT.onConnectFailed('unpair_failed');")
+            }
+        }
     }
 }
