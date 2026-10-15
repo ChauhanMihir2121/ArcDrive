@@ -450,6 +450,16 @@
             border: 1.5px solid #ff3b5c;
         }
 
+        .action-btn:active {
+            transform: scale(0.92) !important;
+            filter: brightness(1.25) !important;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.5) !important;
+        }
+
+        .action-btn * {
+            pointer-events: none;
+        }
+
         .action-btn .icon-wrap svg {
             width: 32px;
             height: 32px;
@@ -1217,7 +1227,7 @@ body { display:block !important; }
             <div id="actionBox" data-id="actionBox"
                 style="max-width:none; position: absolute; left: 180px; top: 712px; transform: translate(-50%, -50%) scale(0.78); transform-origin: center center; z-index: 10; user-select: none;">
                 <div id="actionPanel" style="width: 411px; display: flex; gap: 10px;">
-                    <button class="action-btn start-btn" id="btnStartContinuous">
+                    <button class="action-btn start-btn" id="btnStartContinuous" onclick="startContinuous(this)">
                         <div class="icon-wrap">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                                 <path d="M7 5v14l11-7z" />
@@ -1227,7 +1237,7 @@ body { display:block !important; }
                             <div class="main-text" id="txt_actStart" style="font-size:24px;">Start</div>
                         </div>
                     </button>
-                    <button class="action-btn stop-btn" id="btnStopContinuous">
+                    <button class="action-btn stop-btn" id="btnStopContinuous" onclick="stopDial()">
                         <div class="icon-wrap">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                                 <rect x="7" y="7" width="10" height="10" rx="1.5" />
@@ -2053,10 +2063,14 @@ function unpairDevice(mac, idSuffix) {
     }
 
     function stopDial() {
+        if (currentAppState === 'Disconnected' || currentAppState === 'Connecting') {
+            showToast("Not connected to ArcDrive");
+            return;
+        }
+        addHexLog("TX: 02 (Stop)");
         if (window.ArcNative && ArcNative.sendStop) {
             ArcNative.sendStop();
         } else {
-            addHexLog("TX: 02");
             setTimeout(() => {
                 if (window.ArcBT && window.ArcBT.onStopAck) {
                     addHexLog("RX: AA 82 00 82");
@@ -2068,12 +2082,15 @@ function unpairDevice(mac, idSuffix) {
 
     function startContinuous(btnEl) {
         if (dialAnimReq !== null) return;
-        if (currentAppState === 'Disconnected' || currentAppState === 'Connecting') return;
+        if (currentAppState === 'Disconnected' || currentAppState === 'Connecting') {
+            showToast("Not connected to ArcDrive");
+            return;
+        }
 
+        addHexLog("TX: 01 (Start)");
         if (window.ArcNative && ArcNative.sendStart) {
             ArcNative.sendStart();
         } else {
-            addHexLog("TX: 01");
             setTimeout(() => {
                 if (window.ArcBT && window.ArcBT.onStartAck) {
                     addHexLog("RX: AA 81 01 80");

@@ -34,6 +34,7 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
     
     private var btSocket: BluetoothSocket? = null
+    private var readerThread: Thread? = null
     @Volatile
     private var isConnected = false
     private val prefs: SharedPreferences = activity.getSharedPreferences("ArcDrivePrefs", Context.MODE_PRIVATE)
@@ -241,7 +242,11 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                     runJs("if(window.ArcBT && window.ArcBT.onConnected) window.ArcBT.onConnected('${mac}', '${JSONObject.quote(name).drop(1).dropLast(1)}');")
                 }
 
-                startReading(btSocket?.inputStream)
+                // Run stream reader on its own dedicated thread so executor is FREE to send commands!
+                readerThread?.interrupt()
+                readerThread = Thread({
+                    startReading(btSocket?.inputStream)
+                }, "ArcBtReaderThread").apply { start() }
             } catch (e: Exception) {
                 isConnected = false
                 closeSocketInternal()
@@ -361,7 +366,10 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
 
     @JavascriptInterface
     fun sendStart() {
-        if (!isConnected) return
+        if (!isConnected) {
+            logHex("[ERROR] Not connected to ArcDrive")
+            return
+        }
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
@@ -379,7 +387,10 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
 
     @JavascriptInterface
     fun sendStop() {
-        if (!isConnected) return
+        if (!isConnected) {
+            logHex("[ERROR] Not connected to ArcDrive")
+            return
+        }
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
@@ -435,6 +446,10 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             btSocket?.close()
         } catch (e: Exception) {}
         btSocket = null
+        try {
+            readerThread?.interrupt()
+        } catch (e: Exception) {}
+        readerThread = null
     }
 
     fun onAppBackground() {
