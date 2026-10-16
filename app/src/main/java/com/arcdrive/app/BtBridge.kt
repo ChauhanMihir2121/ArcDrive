@@ -122,12 +122,10 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             return
         }
 
-        // Only show ArcDrive paired devices
+        // Show ALL paired devices (filter can be tightened later)
         bluetoothAdapter?.bondedDevices?.forEach { device ->
             val name = device.name ?: ""
-            if (name.startsWith("ArcDrive") || name.startsWith("Arc")) {
-                sendDeviceToJs(name, device.address, true)
-            }
+            sendDeviceToJs(name, device.address, true)
         }
 
         if (bluetoothAdapter?.isDiscovering == true) {

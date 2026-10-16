@@ -1823,8 +1823,7 @@ window.ArcBT = {
             const list = document.getElementById('btDeviceList');
             if (!list) return;
             
-            // Skip non-ArcDrive devices (double-check, Kotlin also filters)
-            if (!dev.name || (!dev.name.startsWith('ArcDrive') && !dev.name.startsWith('Arc'))) return;
+            // Show all devices (no name filter - connect to whatever is paired)
 
             if (document.getElementById('dev_' + dev.mac.replace(/:/g, ''))) return;
 
@@ -1875,8 +1874,16 @@ window.ArcBT = {
             window.connectingItem.innerHTML = window.connectingItemOriginalHtml;
         }
         setAppStatus('Disconnected');
-        showToast("Connection failed: " + (reason || ''));
-        addHexLog("[CONNECT FAILED] " + (reason || ''));
+        // Make sure BT screen stays open so user can retry
+        document.getElementById('btScreen').classList.add('open');
+        document.getElementById('btAutoConnectState').style.display = 'none';
+        document.getElementById('btDiscoveryState').style.display = 'flex';
+        // Show clear error message
+        const errReason = reason === 'permission' ? 'Bluetooth permission denied' 
+                        : reason === 'disabled' ? 'Bluetooth is off — turn it on'
+                        : (reason || 'Unknown error');
+        showToast("❌ Connect failed: " + errReason);
+        addHexLog("[CONNECT FAILED] " + errReason);
     },
     onDisconnected: function() {
         stopDialAnimationOnly();
@@ -2649,13 +2656,17 @@ function unpairDevice(mac, idSuffix) {
             list.innerHTML = '';
             const mac = ArcNative.getSavedMac();
             if (mac) {
+                // Try auto-connect to saved device
                 ArcNative.connect(mac);
+                // Also immediately load device list in background
+                ArcNative.startScan();
+                // If not connected in 8s, show device list
                 window.btTimeout = setTimeout(() => {
                     autoState.style.display = 'none';
                     discState.style.display = 'flex';
-                    ArcNative.startScan();
-                }, 4000);
+                }, 8000);
             } else {
+                // No saved device - go straight to scan
                 setTimeout(() => {
                     autoState.style.display = 'none';
                     discState.style.display = 'flex';
