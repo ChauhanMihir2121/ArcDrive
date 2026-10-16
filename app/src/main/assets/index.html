@@ -1823,7 +1823,8 @@ window.ArcBT = {
             const list = document.getElementById('btDeviceList');
             if (!list) return;
             
-            // Show all devices (no name filter - connect to whatever is paired)
+            // Only show ArcDrive devices
+            if (!dev.name || (!dev.name.startsWith('ArcDrive') && !dev.name.startsWith('Arc'))) return;
 
             if (document.getElementById('dev_' + dev.mac.replace(/:/g, ''))) return;
 
