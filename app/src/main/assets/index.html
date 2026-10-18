@@ -1138,22 +1138,18 @@ body { display:block !important; }
                 </div>
             </div>
 
-            <!-- Developer Expanded Terminal Console (Hidden by default, replaces dial when enabled in Settings) -->
             <div id="devTerminalBox" data-id="devTerminalBox"
-                style="display:none; max-width:none; position: absolute; left: 180px; top: 256.8px; transform: translate(-50%, -50%) scale(0.60); transform-origin: center center; z-index: 10; user-select: none;">
-                <div class="glass-panel" id="devTerminalPanel"
-                    style="width: 535px; height: 285px; margin: 0 auto; display: flex; flex-direction: column; padding: 14px 18px; box-sizing: border-box;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.25); padding-bottom: 8px; margin-bottom: 10px;">
+                style="display: none; max-width:none; position: absolute; left: 180px; top: 256.8px; transform: translate(-50%, -50%) scale(0.60); transform-origin: center center; z-index: 10; user-select: none;">
+                <div class="glass-panel" id="devTerminalPanel" style="width: 535px; height: 320px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; padding: 14px 18px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e;"></span>
-                            <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #38bdf8; letter-spacing: 0.5px;">DIAGNOSTIC TERMINAL [V1.0.2]</span>
+                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                            <span style="font-size: 18px; font-weight: bold; color: #f1f5f9; letter-spacing: 0.5px;">LIVE TERMINAL / CONSOLE</span>
                         </div>
-                        <button onclick="clearHexLogs()"
-                            style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; border-radius: 6px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-family: monospace; font-weight: bold;">CLEAR</button>
+                        <button onclick="clearHexLogs()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 12px; font-size: 14px; cursor: pointer; font-weight: 600;">Clear</button>
                     </div>
-                    <div id="expandedLogContent"
-                        style="flex: 1; background: rgba(3, 7, 18, 0.85); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; line-height: 1.6; color: #38bdf8; overflow-y: auto; text-align: left; white-space: pre-wrap; word-break: break-all; pointer-events: auto; user-select: text;">
-                        <div style="color: #64748b;">[CONSOLE INITIALIZED - ARC DRIVE V1.0.2]</div>
+                    <div id="hexLogArea" style="flex: 1; width: 100%; height: 230px; background: rgba(5,10,20,0.95); border: 1px solid rgba(56,189,248,0.35); border-radius: 8px; font-family: monospace; font-size: 13px; color: #38bdf8; padding: 8px 12px; overflow-y: auto; text-align: left; box-sizing: border-box;">
+                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.0.2]</div>
                     </div>
                 </div>
             </div>
@@ -1715,10 +1711,10 @@ body { display:block !important; }
                     </div>
                 </div>
 
-                <!-- Developer Options Card -->
+                <!-- Developer Settings Card -->
                 <div class="settings-card">
                     <div class="settings-card-header">
-                        <div class="settings-card-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                        <div class="settings-card-icon">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="4 17 10 11 4 5"></polyline>
@@ -1726,21 +1722,22 @@ body { display:block !important; }
                             </svg>
                         </div>
                         <div>
-                            <div class="settings-card-title">Developer Options</div>
-                            <div class="settings-card-subtitle">Diagnostics & terminal view</div>
+                            <div class="settings-card-title">Developer Settings</div>
+                            <div class="settings-card-subtitle">Terminal & diagnostic tools</div>
                         </div>
                     </div>
-                    <div class="settings-inner-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 12px 14px;">
-                        <div>
-                            <div style="font-size: 13px; color: #f1f5f9; font-weight: bold;">Expanded Terminal</div>
-                            <div style="font-size: 10px; color: #64748b; margin-top:2px;">Replace position dial with live log console</div>
+                    <div class="settings-inner-box" style="flex-direction: column; padding: 12px 10px; gap: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 13px; color: #f1f5f9; font-weight: bold;">Terminal / Log Console</div>
+                                <div style="font-size: 10px; color: #64748b; margin-top:2px;">Replaces position dial with live terminal</div>
+                            </div>
+                            <label class="toggle-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer;">
+                                <input type="checkbox" id="chkDevTerminal" onchange="toggleDevTerminal(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                                <span id="sliderDevTerminal" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 24px;"></span>
+                                <span id="thumbDevTerminal" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
+                            </label>
                         </div>
-                        <label style="position: relative; display: inline-block; width: 46px; height: 26px; margin: 0; cursor: pointer;">
-                            <input type="checkbox" id="chkDevTerminal" onchange="toggleDevTerminal(this.checked)" style="opacity: 0; width: 0; height: 0; position: absolute;">
-                            <span id="sliderDevTerminal" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px;">
-                                <span id="thumbDevTerminal" style="position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
-                            </span>
-                        </label>
                     </div>
                 </div>
 
@@ -1771,24 +1768,21 @@ body { display:block !important; }
 let currentAppState = 'Disconnected';
 
 function addHexLog(msg) {
-    const exp = document.getElementById('expandedLogContent');
-    if (exp) {
-        const line = document.createElement('div');
-        line.textContent = msg;
-        exp.appendChild(line);
-        exp.scrollTop = exp.scrollHeight;
-    }
+    const el = document.getElementById('hexLogArea');
+    if (!el) return;
+    const line = document.createElement('div');
+    line.style.cssText = "padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; line-height: 1.4;";
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
 }
 
 function clearHexLogs() {
-    const exp = document.getElementById('expandedLogContent');
-    if (exp) exp.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
+    const el = document.getElementById('hexLogArea');
+    if (el) el.innerHTML = '<div style="color: #64748b; padding: 2px 0;">[CONSOLE CLEARED]</div>';
 }
 
 function toggleDevTerminal(enabled) {
-    try {
-        localStorage.setItem('arcdrive_dev_terminal', enabled ? 'true' : 'false');
-    } catch (e) {}
     const gaugeBox = document.getElementById('gaugeBox');
     const devBox = document.getElementById('devTerminalBox');
     const chk = document.getElementById('chkDevTerminal');
@@ -1799,6 +1793,9 @@ function toggleDevTerminal(enabled) {
     if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0px)';
     if (gaugeBox) gaugeBox.style.display = enabled ? 'none' : 'block';
     if (devBox) devBox.style.display = enabled ? 'block' : 'none';
+    try {
+        localStorage.setItem('arcdrive_dev_terminal', enabled ? 'true' : 'false');
+    } catch (e) {}
 }
 
 function setAppStatus(state) {
