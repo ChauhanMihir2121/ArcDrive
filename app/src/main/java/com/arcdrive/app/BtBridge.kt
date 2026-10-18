@@ -295,28 +295,44 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                         }
                     }
 
-                    // Need at least 4 bytes for a full frame
+                    // Need at least 4 bytes to even inspect a header
                     if (streamBuffer.size < 4) {
                         break
                     }
 
                     val header = streamBuffer[0].toInt() and 0xFF
                     val type = streamBuffer[1].toInt() and 0xFF
-                    val value = streamBuffer[2].toInt() and 0xFF
-                    val checksum = streamBuffer[3].toInt() and 0xFF
 
-                    if ((type xor value) == checksum) {
-                        // Valid 4-byte feedback frame!
-                        val hexStr = String.format("AA %02X %02X %02X", type, value, checksum)
-                        handleValidFrame(type, value, hexStr)
+                    // Priority: Check if we have a valid 5-byte frame (AA TYPE HI LO CHK5)
+                    if (streamBuffer.size >= 5) {
+                        val hi = streamBuffer[2].toInt() and 0xFF
+                        val lo = streamBuffer[3].toInt() and 0xFF
+                        val chk5 = streamBuffer[4].toInt() and 0xFF
+                        if ((type xor hi xor lo) == chk5) {
+                            val value = (hi shl 8) or lo
+                            val hexStr = String.format("AA %02X %02X %02X %02X", type, hi, lo, chk5)
+                            handleValidFrame(type, value, hexStr)
+                            for (k in 0 until 5) {
+                                streamBuffer.removeAt(0)
+                            }
+                            continue
+                        }
+                    }
 
+                    // Fallback: Check if we have a valid 4-byte frame (AA TYPE VAL CHK4)
+                    val value4 = streamBuffer[2].toInt() and 0xFF
+                    val chk4 = streamBuffer[3].toInt() and 0xFF
+                    if ((type xor value4) == chk4) {
+                        val hexStr = String.format("AA %02X %02X %02X", type, value4, chk4)
+                        handleValidFrame(type, value4, hexStr)
                         for (k in 0 until 4) {
                             streamBuffer.removeAt(0)
                         }
-                    } else {
-                        // Invalid checksum: drop only first 0xAA byte and continue searching
-                        streamBuffer.removeAt(0)
+                        continue
                     }
+
+                    // If neither 5-byte nor 4-byte matched, drop first 0xAA byte and continue searching
+                    streamBuffer.removeAt(0)
                 }
             } catch (e: Exception) {
                 break
@@ -373,15 +389,17 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             logHex("[ERROR] Not connected to ArcDrive")
             return
         }
-        val clamped = speedRpm.coerceIn(0, 50).toByte()
+        val clamped = speedRpm.coerceIn(0, 500)
+        val hi = ((clamped shr 8) and 0xFF).toByte()
+        val lo = (clamped and 0xFF).toByte()
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
-                val packet = byteArrayOf(ArcProtocol.CMD_START, clamped)
+                val packet = byteArrayOf(ArcProtocol.CMD_START, hi, lo)
                 out.write(packet)
                 out.flush()
                 activity.runOnUiThread {
-                    logHex(String.format("TX: 01 %02X (Start @ %d RPM)", clamped, clamped.toInt()))
+                    logHex(String.format("TX: 01 %02X %02X (Start @ %d RPM)", hi, lo, clamped))
                     startAckTimeout()
                 }
             } catch (e: Exception) {
@@ -401,15 +419,17 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             logHex("[ERROR] Not connected to ArcDrive")
             return
         }
-        val clamped = speedRpm.coerceIn(0, 50).toByte()
+        val clamped = speedRpm.coerceIn(0, 500)
+        val hi = ((clamped shr 8) and 0xFF).toByte()
+        val lo = (clamped and 0xFF).toByte()
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
-                val packet = byteArrayOf(ArcProtocol.CMD_SET_SPEED, clamped)
+                val packet = byteArrayOf(ArcProtocol.CMD_SET_SPEED, hi, lo)
                 out.write(packet)
                 out.flush()
                 activity.runOnUiThread {
-                    logHex(String.format("TX: 03 %02X (Set Speed: %d RPM)", clamped, clamped.toInt()))
+                    logHex(String.format("TX: 03 %02X %02X (Set Speed: %d RPM)", hi, lo, clamped))
                     startAckTimeout()
                 }
             } catch (e: Exception) {

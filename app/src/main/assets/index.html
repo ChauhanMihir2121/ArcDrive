@@ -1471,8 +1471,11 @@ body { display:block !important; }
                             <div class="settings-label" style="font-size:11px; margin-bottom:4px;">Minimum Speed
                             </div>
                             <div style="position: relative;">
-                                <input type="number" class="settings-input" id="inpMinSpeed" value="1.0" min="0.1"
-                                    max="500" step="0.1" style="font-size:14px; padding:8px 35px 8px 8px;">
+                                <input type="number" class="settings-input" id="inpMinSpeed" value="1" min="1"
+                                    max="500" step="1" maxlength="3"
+                                    oninput="if(this.value.length > 3) this.value = this.value.slice(0, 3)"
+                                    onkeypress="if(this.value.length >= 3 && !['Backspace','Delete','ArrowLeft','ArrowRight'].includes(event.key)) return false;"
+                                    style="font-size:14px; padding:8px 35px 8px 8px;">
                                 <span
                                     style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #64748b; pointer-events: none;">RPM</span>
                             </div>
@@ -1482,8 +1485,11 @@ body { display:block !important; }
                             <div class="settings-label" style="font-size:11px; margin-bottom:4px;">Maximum Speed
                             </div>
                             <div style="position: relative;">
-                                <input type="number" class="settings-input" id="inpMaxSpeed" value="50.0" min="0.1"
-                                    max="500" step="0.1" style="font-size:14px; padding:8px 35px 8px 8px;">
+                                <input type="number" class="settings-input" id="inpMaxSpeed" value="50" min="1"
+                                    max="500" step="1" maxlength="3"
+                                    oninput="if(this.value.length > 3) this.value = this.value.slice(0, 3)"
+                                    onkeypress="if(this.value.length >= 3 && !['Backspace','Delete','ArrowLeft','ArrowRight'].includes(event.key)) return false;"
+                                    style="font-size:14px; padding:8px 35px 8px 8px;">
                                 <span
                                     style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #64748b; pointer-events: none;">RPM</span>
                             </div>
@@ -2092,12 +2098,14 @@ function unpairDevice(mac, idSuffix) {
             return;
         }
         const slider = document.getElementById('speedSlider');
+        const min = parseFloat(slider.min) || 1;
+        const max = parseFloat(slider.max) || 500;
         let newVal = parseFloat(slider.value) + delta;
-        if (newVal > 50) newVal = 50; if (newVal < 1) newVal = 1;
+        if (newVal > max) newVal = max;
+        if (newVal < min) newVal = min;
         slider.value = newVal;
         currentValidSpeed = newVal;
         updateSpeedDisplay(newVal);
-
     }
     // Dial SVG Logic
     const dialSvg = document.getElementById('dialSvg');
@@ -2172,9 +2180,13 @@ function unpairDevice(mac, idSuffix) {
         }
 
         const slider = document.getElementById('speedSlider');
+        const min = slider ? (parseFloat(slider.min) || 1) : 1;
+        const max = slider ? (parseFloat(slider.max) || 500) : 500;
         const spd = slider ? Math.round(parseFloat(slider.value)) : Math.round(currentValidSpeed || 1);
-        const clampedSpd = Math.min(Math.max(spd, 0), 50);
-        const hexSpd = (clampedSpd < 16 ? "0" : "") + clampedSpd.toString(16).toUpperCase();
+        const clampedSpd = Math.min(Math.max(spd, min), max);
+        const hi = (clampedSpd >> 8) & 0xFF;
+        const lo = clampedSpd & 0xFF;
+        const hexSpd = (hi < 16 ? "0" : "") + hi.toString(16).toUpperCase() + " " + (lo < 16 ? "0" : "") + lo.toString(16).toUpperCase();
 
         addHexLog("TX: 01 " + hexSpd + " (Start @" + clampedSpd + " RPM)");
         if (window.ArcNative && ArcNative.sendStart) {
@@ -2550,26 +2562,29 @@ function unpairDevice(mac, idSuffix) {
     });
 
     function applySpeedSliderLimits(minSpd, maxSpd) {
+        minSpd = Math.max(1, Math.min(parseFloat(minSpd) || 1, 500));
+        maxSpd = Math.max(minSpd, Math.min(parseFloat(maxSpd) || 50, 500));
         const spdSlider = document.getElementById('speedSlider');
         if (spdSlider) {
             spdSlider.min = minSpd;
             spdSlider.max = maxSpd;
             let currentVal = parseFloat(spdSlider.value);
-            if (currentVal < minSpd) currentVal = minSpd;
+            if (isNaN(currentVal) || currentVal < minSpd) currentVal = minSpd;
             if (currentVal > maxSpd) currentVal = maxSpd;
             spdSlider.value = currentVal;
+            currentValidSpeed = currentVal;
 
             const spdText = document.getElementById('speedValText');
             if (spdText) spdText.textContent = currentVal.toFixed(1);
 
             const txtMin = document.getElementById('txt_spdMin');
-            if (txtMin) txtMin.textContent = minSpd;
+            if (txtMin) txtMin.textContent = Math.round(minSpd);
 
             const txtMax = document.getElementById('txt_spdMax');
-            if (txtMax) txtMax.textContent = maxSpd;
+            if (txtMax) txtMax.textContent = Math.round(maxSpd);
 
             const txtRight = document.getElementById('txt_spdRight');
-            if (txtRight) txtRight.textContent = `${minSpd} - ${maxSpd} RPM`;
+            if (txtRight) txtRight.textContent = `${Math.round(minSpd)} - ${Math.round(maxSpd)} RPM`;
         }
     }
 
