@@ -336,15 +336,18 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     private fun handleValidFrame(type: Int, value: Int, hexStr: String) {
         activity.runOnUiThread {
             logHex("RX: $hexStr")
-            if (type == ArcProtocol.FB_START_ACK && value == 0x01) {
+            if (type == ArcProtocol.FB_START_ACK) {
                 cancelAckTimeout()
-                runJs("if(window.ArcBT && window.ArcBT.onStartAck) window.ArcBT.onStartAck();")
+                runJs("if(window.ArcBT && window.ArcBT.onStartAck) window.ArcBT.onStartAck($value);")
             } else if (type == ArcProtocol.FB_STOP_ACK && value == 0x00) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onStopAck) window.ArcBT.onStopAck();")
+            } else if (type == ArcProtocol.FB_SPEED_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onSpeedAck) window.ArcBT.onSpeedAck($value);")
             } else if (type == ArcProtocol.FB_ERROR) {
                 cancelAckTimeout()
-                runJs("if(window.ArcBT && window.ArcBT.onErrorFrame) window.ArcBT.onErrorFrame();")
+                runJs("if(window.ArcBT && window.ArcBT.onErrorFrame) window.ArcBT.onErrorFrame($value);")
             }
         }
     }
@@ -365,18 +368,48 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
 
     @JavascriptInterface
-    fun sendStart() {
+    fun sendStart(speedRpm: Int) {
         if (!isConnected) {
             logHex("[ERROR] Not connected to ArcDrive")
             return
         }
+        val clamped = speedRpm.coerceIn(0, 50).toByte()
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
-                out.write(byteArrayOf(ArcProtocol.CMD_START))
+                val packet = byteArrayOf(ArcProtocol.CMD_START, clamped)
+                out.write(packet)
                 out.flush()
                 activity.runOnUiThread {
-                    logHex("TX: 01")
+                    logHex(String.format("TX: 01 %02X (Start @ %d RPM)", clamped, clamped.toInt()))
+                    startAckTimeout()
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun sendStart() {
+        sendStart(1)
+    }
+
+    @JavascriptInterface
+    fun sendSpeed(speedRpm: Int) {
+        if (!isConnected) {
+            logHex("[ERROR] Not connected to ArcDrive")
+            return
+        }
+        val clamped = speedRpm.coerceIn(0, 50).toByte()
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                val packet = byteArrayOf(ArcProtocol.CMD_SET_SPEED, clamped)
+                out.write(packet)
+                out.flush()
+                activity.runOnUiThread {
+                    logHex(String.format("TX: 03 %02X (Set Speed: %d RPM)", clamped, clamped.toInt()))
                     startAckTimeout()
                 }
             } catch (e: Exception) {

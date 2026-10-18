@@ -1138,6 +1138,26 @@ body { display:block !important; }
                 </div>
             </div>
 
+            <!-- Developer Expanded Terminal Console (Hidden by default, replaces dial when enabled in Settings) -->
+            <div id="devTerminalBox" data-id="devTerminalBox"
+                style="display:none; max-width:none; position: absolute; left: 180px; top: 256.8px; transform: translate(-50%, -50%) scale(0.60); transform-origin: center center; z-index: 10; user-select: none;">
+                <div class="glass-panel" id="devTerminalPanel"
+                    style="width: 535px; height: 285px; margin: 0 auto; display: flex; flex-direction: column; padding: 14px 18px; box-sizing: border-box;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(56, 189, 248, 0.25); padding-bottom: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 8px #22c55e;"></span>
+                            <span style="font-family: monospace; font-size: 15px; font-weight: bold; color: #38bdf8; letter-spacing: 0.5px;">DIAGNOSTIC TERMINAL [V1.0.2]</span>
+                        </div>
+                        <button onclick="clearHexLogs()"
+                            style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; border-radius: 6px; font-size: 12px; padding: 4px 10px; cursor: pointer; font-family: monospace; font-weight: bold;">CLEAR</button>
+                    </div>
+                    <div id="expandedLogContent"
+                        style="flex: 1; background: rgba(3, 7, 18, 0.85); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 10px; font-family: monospace; font-size: 12px; line-height: 1.6; color: #38bdf8; overflow-y: auto; text-align: left; white-space: pre-wrap; word-break: break-all; pointer-events: auto; user-select: text;">
+                        <div style="color: #64748b;">[CONSOLE INITIALIZED - ARC DRIVE V1.0.2]</div>
+                    </div>
+                </div>
+            </div>
+
             <div id="presetBox" data-id="presetBox"
                 style="max-width:none; position: absolute; left: 180px; top: 377.6px; transform: translate(-50%, -50%) scale(0.60); transform-origin: center center; z-index: 10; user-select: none;">
                 <div class="glass-panel" id="presetPanel" style="width: 535px; --preset-font: 18px;">
@@ -1270,7 +1290,7 @@ body { display:block !important; }
                         <span id="txt_ftMain" style="color: white; font-weight: bold; font-size: 25px;">ArcDrive</span>
                         <span id="txt_ftSub" style="font-size: 18px;">· Precision motion, engineered simply.</span>
                     </div>
-                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.0</div>
+                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.2</div>
                 </div>
             </div>
 
@@ -1700,6 +1720,35 @@ body { display:block !important; }
                     </div>
                 </div>
 
+                <!-- Developer Options Card -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="4 17 10 11 4 5"></polyline>
+                                <line x1="12" y1="19" x2="20" y2="19"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="settings-card-title">Developer Options</div>
+                            <div class="settings-card-subtitle">Diagnostics & terminal view</div>
+                        </div>
+                    </div>
+                    <div class="settings-inner-box" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 12px 14px;">
+                        <div>
+                            <div style="font-size: 13px; color: #f1f5f9; font-weight: bold;">Expanded Terminal</div>
+                            <div style="font-size: 10px; color: #64748b; margin-top:2px;">Replace position dial with live log console</div>
+                        </div>
+                        <label style="position: relative; display: inline-block; width: 46px; height: 26px; margin: 0; cursor: pointer;">
+                            <input type="checkbox" id="chkDevTerminal" onchange="toggleDevTerminal(this.checked)" style="opacity: 0; width: 0; height: 0; position: absolute;">
+                            <span id="sliderDevTerminal" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 26px;">
+                                <span id="thumbDevTerminal" style="position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%;"></span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Firmware Button -->
                 <button class="primary-btn" id="btnFirmware"
                     style="width: 100%; height: 50px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 12px;">
@@ -1713,7 +1762,7 @@ body { display:block !important; }
                     style="display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 10px; padding-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                     <div><strong style="color:#f1f5f9;">ArcDrive</strong> · Precision motion, engineered simply.
                     </div>
-                    <div id="settingsVersionText">v1.0.0</div>
+                    <div id="settingsVersionText">v1.0.2</div>
                 </div>
 
             </div>
@@ -1728,11 +1777,42 @@ let currentAppState = 'Disconnected';
 
 function addHexLog(msg) {
     const el = document.getElementById('hexLogArea');
-    if (!el) return;
-    const line = document.createElement('div');
-    line.textContent = msg;
-    el.appendChild(line);
-    el.scrollTop = el.scrollHeight;
+    if (el) {
+        const line = document.createElement('div');
+        line.textContent = msg;
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
+    }
+    const exp = document.getElementById('expandedLogContent');
+    if (exp) {
+        const line = document.createElement('div');
+        line.textContent = msg;
+        exp.appendChild(line);
+        exp.scrollTop = exp.scrollHeight;
+    }
+}
+
+function clearHexLogs() {
+    const el1 = document.getElementById('hexLogArea');
+    const el2 = document.getElementById('expandedLogContent');
+    if (el1) el1.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
+    if (el2) el2.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
+}
+
+function toggleDevTerminal(enabled) {
+    try {
+        localStorage.setItem('arcdrive_dev_terminal', enabled ? 'true' : 'false');
+    } catch (e) {}
+    const gaugeBox = document.getElementById('gaugeBox');
+    const devBox = document.getElementById('devTerminalBox');
+    const chk = document.getElementById('chkDevTerminal');
+    const slider = document.getElementById('sliderDevTerminal');
+    const thumb = document.getElementById('thumbDevTerminal');
+    if (chk) chk.checked = enabled;
+    if (slider) slider.style.backgroundColor = enabled ? '#0284c7' : '#334155';
+    if (thumb) thumb.style.transform = enabled ? 'translateX(20px)' : 'translateX(0px)';
+    if (gaugeBox) gaugeBox.style.display = enabled ? 'none' : 'block';
+    if (devBox) devBox.style.display = enabled ? 'block' : 'none';
 }
 
 function setAppStatus(state) {
@@ -1892,22 +1972,35 @@ window.ArcBT = {
         showToast("Disconnected");
         addHexLog("[DISCONNECTED]");
     },
-    onStartAck: function() {
+    onStartAck: function(speedRpm) {
         setAppStatus('Running');
-        startDialContinuousAnimation(10.0);
+        const rpm = (speedRpm !== undefined && speedRpm !== null) ? speedRpm : currentValidSpeed;
+        startDialContinuousAnimation(rpm);
+        addHexLog("[ACK] Motor Running @ " + rpm + " RPM");
+    },
+    onSpeedAck: function(speedRpm) {
+        addHexLog("[ACK] Speed Updated to " + speedRpm + " RPM");
+        showToast("Speed: " + speedRpm + " RPM");
     },
     onStopAck: function() {
         setAppStatus('Stopped');
         stopDialAnimationOnly();
+        addHexLog("[ACK] Motor Stopped");
     },
     onAckTimeout: function() {
         setAppStatus('No response');
         stopDialAnimationOnly();
-        showToast("No response");
+        showToast("No response from ArcDrive");
+        addHexLog("[TIMEOUT] No ACK from ESP32");
     },
-    onErrorFrame: function() {
-        addHexLog("[ERROR FRAME RECEIVED]");
-        showToast("ESP32 Error Frame");
+    onErrorFrame: function(code) {
+        let errText = "ESP32 Error";
+        if (code === 1) errText = "Error: Unknown Command";
+        else if (code === 2) errText = "Error: Speed Out of Range (0-50)";
+        else if (code === 3) errText = "Error: Command Value Timeout";
+        else if (code === 4) errText = "Error: Communication Timeout";
+        addHexLog("[ERROR FRAME] " + errText + (code !== undefined ? " (" + code + ")" : ""));
+        showToast(errText);
     },
     onLog: function(text) {
         addHexLog(text);
@@ -2095,14 +2188,19 @@ function unpairDevice(mac, idSuffix) {
             return;
         }
 
-        addHexLog("TX: 01 (Start)");
+        const slider = document.getElementById('speedSlider');
+        const spd = slider ? Math.round(parseFloat(slider.value)) : Math.round(currentValidSpeed || 1);
+        const clampedSpd = Math.min(Math.max(spd, 0), 50);
+        const hexSpd = (clampedSpd < 16 ? "0" : "") + clampedSpd.toString(16).toUpperCase();
+
+        addHexLog("TX: 01 " + hexSpd + " (Start @" + clampedSpd + " RPM)");
         if (window.ArcNative && ArcNative.sendStart) {
-            ArcNative.sendStart();
+            ArcNative.sendStart(clampedSpd);
         } else {
             setTimeout(() => {
                 if (window.ArcBT && window.ArcBT.onStartAck) {
-                    addHexLog("RX: AA 81 01 80");
-                    window.ArcBT.onStartAck();
+                    addHexLog("RX: AA 81 " + hexSpd);
+                    window.ArcBT.onStartAck(clampedSpd);
                 }
             }, 100);
         }
@@ -2629,6 +2727,10 @@ function unpairDevice(mac, idSuffix) {
     });
 
     initDial();
+    try {
+        const devEnabled = localStorage.getItem('arcdrive_dev_terminal') === 'true';
+        toggleDevTerminal(devEnabled);
+    } catch (e) {}
     updateDial(0);
     renderBackground();
     renderElements();

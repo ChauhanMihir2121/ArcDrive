@@ -6,14 +6,16 @@ object ArcProtocol {
     val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     const val DEVICE_NAME = "ArcDrive_1"
 
-    // Commands (App -> ESP32), exactly 1 byte
+    // Commands (App -> ESP32)
     const val CMD_START: Byte = 0x01
     const val CMD_STOP: Byte = 0x02
+    const val CMD_SET_SPEED: Byte = 0x03
 
     // Feedback (ESP32 -> App), fixed 4-byte frame
     const val FRAME_HEADER: Int = 0xAA
     const val FB_START_ACK: Int = 0x81
     const val FB_STOP_ACK: Int = 0x82
+    const val FB_SPEED_ACK: Int = 0x83
     const val FB_ERROR: Int = 0xEE
 
     // Timeouts
