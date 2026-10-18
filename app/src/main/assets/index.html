@@ -1270,11 +1270,6 @@ body { display:block !important; }
                 </div>
             </div>
 
-            <!-- HEX Log Area (TX / RX in HEX) -->
-            <div id="hexLogArea" style="position: absolute; left: 180px; top: 768px; transform: translate(-50%, -50%); width: 330px; height: 38px; background: rgba(6,10,20,0.92); border: 1px solid rgba(56,189,248,0.3); border-radius: 6px; font-family: monospace; font-size: 10px; color: #38bdf8; padding: 4px 8px; overflow-y: auto; text-align: left; box-sizing: border-box; z-index: 100; pointer-events: auto;">
-                <div style="color: #64748b;">[LOG READY]</div>
-            </div>
-
             <div id="footerLineBox" data-id="footerLineBox"
                 style="max-width:none; position: absolute; left: 182.88px; top: 748.8px; transform: translate(-50%, -50%) scale(0.60); transform-origin: center center; z-index: 10; user-select: none; pointer-events: none;">
                 <div id="footerLinePanel" style="width: 535px; padding: 10px 0;">
@@ -1776,13 +1771,6 @@ body { display:block !important; }
 let currentAppState = 'Disconnected';
 
 function addHexLog(msg) {
-    const el = document.getElementById('hexLogArea');
-    if (el) {
-        const line = document.createElement('div');
-        line.textContent = msg;
-        el.appendChild(line);
-        el.scrollTop = el.scrollHeight;
-    }
     const exp = document.getElementById('expandedLogContent');
     if (exp) {
         const line = document.createElement('div');
@@ -1793,10 +1781,8 @@ function addHexLog(msg) {
 }
 
 function clearHexLogs() {
-    const el1 = document.getElementById('hexLogArea');
-    const el2 = document.getElementById('expandedLogContent');
-    if (el1) el1.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
-    if (el2) el2.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
+    const exp = document.getElementById('expandedLogContent');
+    if (exp) exp.innerHTML = '<div style="color: #64748b;">[LOG CLEARED]</div>';
 }
 
 function toggleDevTerminal(enabled) {
