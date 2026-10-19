@@ -10,12 +10,15 @@ object ArcProtocol {
     const val CMD_START: Byte = 0x01
     const val CMD_STOP: Byte = 0x02
     const val CMD_SET_SPEED: Byte = 0x03
+    const val CMD_FORWARD: Byte = 0x04
+    const val CMD_REVERSE: Byte = 0x05
 
-    // Feedback (ESP32 -> App), fixed 4-byte frame
+    // Feedback (ESP32 -> App), 5-byte frame: AA TYPE HI LO CHK
     const val FRAME_HEADER: Int = 0xAA
     const val FB_START_ACK: Int = 0x81
     const val FB_STOP_ACK: Int = 0x82
     const val FB_SPEED_ACK: Int = 0x83
+    const val FB_DIR_ACK: Int = 0x84
     const val FB_ERROR: Int = 0xEE
 
     // Timeouts

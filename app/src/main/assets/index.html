@@ -1149,7 +1149,7 @@ body { display:block !important; }
                         <button onclick="clearHexLogs()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 12px; font-size: 14px; cursor: pointer; font-weight: 600;">Clear</button>
                     </div>
                     <div id="hexLogArea" style="flex: 1; width: 100%; height: 230px; background: rgba(5,10,20,0.95); border: 1px solid rgba(56,189,248,0.35); border-radius: 8px; font-family: monospace; font-size: 13px; color: #38bdf8; padding: 8px 12px; overflow-y: auto; text-align: left; box-sizing: border-box;">
-                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.0.2]</div>
+                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.0.3]</div>
                     </div>
                 </div>
             </div>
@@ -1281,7 +1281,7 @@ body { display:block !important; }
                         <span id="txt_ftMain" style="color: white; font-weight: bold; font-size: 25px;">ArcDrive</span>
                         <span id="txt_ftSub" style="font-size: 18px;">· Precision motion, engineered simply.</span>
                     </div>
-                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.2</div>
+                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.3</div>
                 </div>
             </div>
 
@@ -1760,7 +1760,7 @@ body { display:block !important; }
                     style="display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 10px; padding-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                     <div><strong style="color:#f1f5f9;">ArcDrive</strong> · Precision motion, engineered simply.
                     </div>
-                    <div id="settingsVersionText">v1.0.2</div>
+                    <div id="settingsVersionText">v1.0.3</div>
                 </div>
 
             </div>
@@ -1971,6 +1971,11 @@ window.ArcBT = {
         addHexLog("[ACK] Speed Updated to " + speedRpm + " RPM");
         showToast("Speed: " + speedRpm + " RPM");
     },
+    onDirAck: function(dir) {
+        const dirName = (dir === 1) ? "REVERSE" : "FORWARD";
+        addHexLog("[ACK] Direction set to " + dirName);
+        showToast("Direction: " + dirName);
+    },
     onStopAck: function() {
         setAppStatus('Stopped');
         stopDialAnimationOnly();
@@ -2071,11 +2076,19 @@ function unpairDevice(mac, idSuffix) {
     }
     // Controls Logic
     function setDirection(dir) {
-        if (dialAnimReq !== null) return; // Locked out
         document.getElementById('btnForward').classList.remove('active');
         document.getElementById('btnReverse').classList.remove('active');
         if (dir === 'forward') document.getElementById('btnForward').classList.add('active');
         else document.getElementById('btnReverse').classList.add('active');
+
+        if (dialAnimReq !== null) {
+            let dirCode = (dir === 'forward') ? 0 : 1;
+            const invDir = document.getElementById('togInvertDir') ? document.getElementById('togInvertDir').checked : false;
+            if (invDir) dirCode = (dirCode === 0) ? 1 : 0;
+            if (window.ArcNative && ArcNative.sendDirection) {
+                ArcNative.sendDirection(dirCode);
+            }
+        }
     }
 
     function updateSpeedDisplay(val) {
@@ -2165,7 +2178,7 @@ function unpairDevice(mac, idSuffix) {
         } else {
             setTimeout(() => {
                 if (window.ArcBT && window.ArcBT.onStopAck) {
-                    addHexLog("RX: AA 82 00 82");
+                    addHexLog("RX: AA 82 00 00 82");
                     window.ArcBT.onStopAck();
                 }
             }, 100);
@@ -2186,15 +2199,27 @@ function unpairDevice(mac, idSuffix) {
         const clampedSpd = Math.min(Math.max(spd, min), max);
         const hi = (clampedSpd >> 8) & 0xFF;
         const lo = clampedSpd & 0xFF;
-        const hexSpd = (hi < 16 ? "0" : "") + hi.toString(16).toUpperCase() + " " + (lo < 16 ? "0" : "") + lo.toString(16).toUpperCase();
 
-        addHexLog("TX: 01 " + hexSpd + " (Start @" + clampedSpd + " RPM)");
+        const isFwd = document.getElementById('btnForward').classList.contains('active');
+        let dirCode = isFwd ? 0 : 1;
+        const invDir = document.getElementById('togInvertDir') ? document.getElementById('togInvertDir').checked : false;
+        if (invDir) {
+            dirCode = (dirCode === 0) ? 1 : 0;
+        }
+
+        const hexHi = (hi < 16 ? "0" : "") + hi.toString(16).toUpperCase();
+        const hexLo = (lo < 16 ? "0" : "") + lo.toString(16).toUpperCase();
+        const hexDir = (dirCode < 16 ? "0" : "") + dirCode.toString(16).toUpperCase();
+        const dirName = (dirCode === 0) ? "FWD" : "REV";
+
+        // Full packet: [START] [SPEED_HI] [SPEED_LO] [DIR]
+        addHexLog("TX: 01 " + hexHi + " " + hexLo + " " + hexDir + " (Start @" + clampedSpd + " RPM, " + dirName + ")");
         if (window.ArcNative && ArcNative.sendStart) {
-            ArcNative.sendStart(clampedSpd);
+            ArcNative.sendStart(clampedSpd, dirCode);
         } else {
             setTimeout(() => {
                 if (window.ArcBT && window.ArcBT.onStartAck) {
-                    addHexLog("RX: AA 81 " + hexSpd);
+                    addHexLog("RX: AA 81 " + hexHi + " " + hexLo);
                     window.ArcBT.onStartAck(clampedSpd);
                 }
             }, 100);
@@ -2206,7 +2231,6 @@ function unpairDevice(mac, idSuffix) {
         setMotorRunningState(true, document.getElementById('btnStartContinuous'));
         continuousMode = true;
         let lastTime = performance.now();
-        const isReverse = document.getElementById('btnReverse') && document.getElementById('btnReverse').classList.contains('active');
 
         function step(timestamp) {
             const deltaMs = timestamp - lastTime;
@@ -2214,7 +2238,8 @@ function unpairDevice(mac, idSuffix) {
 
             const degreesPerMs = (rpm || 10.0) * 0.006;
             let angleChange = degreesPerMs * deltaMs;
-            if (isReverse) angleChange = -angleChange;
+            const isRevNow = document.getElementById('btnReverse') && document.getElementById('btnReverse').classList.contains('active');
+            if (isRevNow) angleChange = -angleChange;
 
             currentAngle += angleChange;
             currentAngle = (currentAngle % 360 + 360) % 360;
@@ -2632,6 +2657,9 @@ function unpairDevice(mac, idSuffix) {
         }
 
         applySpeedSliderLimits(settings.minSpeed, settings.maxSpeed);
+        if (typeof setDirection === 'function' && settings.defDir) {
+            setDirection(settings.defDir);
+        }
 
         unsavedChanges = false;
         unsavedIndicator.style.display = 'none';
@@ -2663,6 +2691,9 @@ function unpairDevice(mac, idSuffix) {
         document.getElementById('selSpeedStep').value = settings.speedStep;
 
         applySpeedSliderLimits(settings.minSpeed, settings.maxSpeed);
+        if (typeof setDirection === 'function' && settings.defDir) {
+            setDirection(settings.defDir);
+        }
     }
 
     document.getElementById('btnSaveSettings').addEventListener('click', saveAllSettings);

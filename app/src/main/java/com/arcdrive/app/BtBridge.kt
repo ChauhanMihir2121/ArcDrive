@@ -361,6 +361,9 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             } else if (type == ArcProtocol.FB_SPEED_ACK) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onSpeedAck) window.ArcBT.onSpeedAck($value);")
+            } else if (type == ArcProtocol.FB_DIR_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onDirAck) window.ArcBT.onDirAck($value);")
             } else if (type == ArcProtocol.FB_ERROR) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onErrorFrame) window.ArcBT.onErrorFrame($value);")
@@ -384,7 +387,7 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
 
     @JavascriptInterface
-    fun sendStart(speedRpm: Int) {
+    fun sendStart(speedRpm: Int, direction: Int) {
         if (!isConnected) {
             logHex("[ERROR] Not connected to ArcDrive")
             return
@@ -392,14 +395,16 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
         val clamped = speedRpm.coerceIn(0, 500)
         val hi = ((clamped shr 8) and 0xFF).toByte()
         val lo = (clamped and 0xFF).toByte()
+        val dir = (if (direction == 1) 1 else 0).toByte()
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
-                val packet = byteArrayOf(ArcProtocol.CMD_START, hi, lo)
+                val packet = byteArrayOf(ArcProtocol.CMD_START, hi, lo, dir)
                 out.write(packet)
                 out.flush()
                 activity.runOnUiThread {
-                    logHex(String.format("TX: 01 %02X %02X (Start @ %d RPM)", hi, lo, clamped))
+                    logHex(String.format("TX: 01 %02X %02X %02X (Start @ %d RPM, %s)",
+                        hi, lo, dir, clamped, if (dir.toInt() == 0) "FWD" else "REV"))
                     startAckTimeout()
                 }
             } catch (e: Exception) {
@@ -409,8 +414,32 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
 
     @JavascriptInterface
+    fun sendStart(speedRpm: Int) {
+        sendStart(speedRpm, 0)
+    }
+
+    @JavascriptInterface
     fun sendStart() {
-        sendStart(1)
+        sendStart(1, 0)
+    }
+
+    @JavascriptInterface
+    fun sendDirection(direction: Int) {
+        if (!isConnected) return
+        val cmd = if (direction == 1) ArcProtocol.CMD_REVERSE else ArcProtocol.CMD_FORWARD
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                out.write(byteArrayOf(cmd))
+                out.flush()
+                activity.runOnUiThread {
+                    logHex(String.format("TX: %02X (%s)", cmd, if (direction == 1) "REVERSE" else "FORWARD"))
+                    startAckTimeout()
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
     }
 
     @JavascriptInterface
