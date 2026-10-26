@@ -1281,7 +1281,7 @@ body { display:block !important; }
                         <span id="txt_ftMain" style="color: white; font-weight: bold; font-size: 25px;">ArcDrive</span>
                         <span id="txt_ftSub" style="font-size: 18px;">· Precision motion, engineered simply.</span>
                     </div>
-                    <div id="txt_ftVer" style="font-size: 20px;">v1.1.0</div>
+                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.1</div>
                 </div>
             </div>
 
@@ -1328,8 +1328,8 @@ body { display:block !important; }
             <div
                 style="background:#1e293b; border:1px solid #334155; border-radius:12px; padding:20px; width:80%; box-shadow:0 10px 25px rgba(0,0,0,0.5); text-align:center;">
                 <div style="color:white; font-size:16px; font-weight:bold; margin-bottom:15px;">Enter Password</div>
-                <input type="text" id="inpPassword" placeholder="Password" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"
-                    style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #38bdf8; border-radius:8px; color:white; padding:10px; font-size:16px; text-align:center; outline:none; margin-bottom:15px; -webkit-text-security: disc; text-security: disc;">
+                <input type="password" id="inpPassword" placeholder="Password"
+                    style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #38bdf8; border-radius:8px; color:white; padding:10px; font-size:16px; text-align:center; outline:none; margin-bottom:15px;">
                 <div style="display:flex; gap:10px;">
                     <button class="action-btn" id="btnCancelPwd"
                         style="flex:1; background:#334155; border:none; height:40px; border-radius:8px; color:white;">Cancel</button>
@@ -1760,7 +1760,7 @@ body { display:block !important; }
                     style="display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 10px; padding-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                     <div><strong style="color:#f1f5f9;">ArcDrive</strong> · Precision motion, engineered simply.
                     </div>
-                    <div id="settingsVersionText">v1.1.0</div>
+                    <div id="settingsVersionText">v1.0.1</div>
                 </div>
 
             </div>
@@ -2346,7 +2346,13 @@ function unpairDevice(mac, idSuffix) {
             item.classList.add('active-item');
         });
 
-        item.addEventListener('mouseup', (e) => {});
+        item.addEventListener('mouseup', (e) => {
+            if (!dragHasMoved && key === 'settings') {
+                document.getElementById('passwordModal').style.display = 'flex';
+                document.getElementById('inpPassword').value = '';
+                setTimeout(() => document.getElementById('inpPassword').focus(), 100);
+            }
+        });
     });
 
     // Settings Icon Click (Explicitly bound since it's no longer draggable)
