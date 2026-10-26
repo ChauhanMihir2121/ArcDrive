@@ -364,6 +364,12 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             } else if (type == ArcProtocol.FB_DIR_ACK) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onDirAck) window.ArcBT.onDirAck($value);")
+            } else if (type == ArcProtocol.FB_ACCEL_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onAccelAck) window.ArcBT.onAccelAck($value);")
+            } else if (type == ArcProtocol.FB_DECEL_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onDecelAck) window.ArcBT.onDecelAck($value);")
             } else if (type == ArcProtocol.FB_ERROR) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onErrorFrame) window.ArcBT.onErrorFrame($value);")
@@ -387,24 +393,37 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
 
     @JavascriptInterface
-    fun sendStart(speedRpm: Int, direction: Int) {
+    fun sendStart(speedRpm: Int, direction: Int, accelMs: Int, decelMs: Int) {
         if (!isConnected) {
             logHex("[ERROR] Not connected to ArcDrive")
             return
         }
         val clamped = speedRpm.coerceIn(0, 500)
-        val hi = ((clamped shr 8) and 0xFF).toByte()
-        val lo = (clamped and 0xFF).toByte()
+        val spdHi = ((clamped shr 8) and 0xFF).toByte()
+        val spdLo = (clamped and 0xFF).toByte()
         val dir = (if (direction == 1) 1 else 0).toByte()
+
+        val acc = accelMs.coerceIn(100, 10000)
+        val accHi = ((acc shr 8) and 0xFF).toByte()
+        val accLo = (acc and 0xFF).toByte()
+
+        val dec = decelMs.coerceIn(100, 10000)
+        val decHi = ((dec shr 8) and 0xFF).toByte()
+        val decLo = (dec and 0xFF).toByte()
+
         executor.execute {
             try {
                 val out = btSocket?.outputStream ?: return@execute
-                val packet = byteArrayOf(ArcProtocol.CMD_START, hi, lo, dir)
+                val packet = byteArrayOf(
+                    ArcProtocol.CMD_SET_ACCEL, accHi, accLo,
+                    ArcProtocol.CMD_SET_DECEL, decHi, decLo,
+                    ArcProtocol.CMD_START, spdHi, spdLo, dir
+                )
                 out.write(packet)
                 out.flush()
                 activity.runOnUiThread {
-                    logHex(String.format("TX: 01 %02X %02X %02X (Start @ %d RPM, %s)",
-                        hi, lo, dir, clamped, if (dir.toInt() == 0) "FWD" else "REV"))
+                    logHex(String.format("TX: 06 %02X %02X (Accel %dms) | 07 %02X %02X (Decel %dms) | 01 %02X %02X %02X (Start @ %d RPM, %s)",
+                        accHi, accLo, acc, decHi, decLo, dec, spdHi, spdLo, dir, clamped, if (dir.toInt() == 0) "FWD" else "REV"))
                     startAckTimeout()
                 }
             } catch (e: Exception) {
@@ -414,13 +433,60 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
     }
 
     @JavascriptInterface
+    fun sendStart(speedRpm: Int, direction: Int) {
+        sendStart(speedRpm, direction, 2000, 2000)
+    }
+
+    @JavascriptInterface
     fun sendStart(speedRpm: Int) {
-        sendStart(speedRpm, 0)
+        sendStart(speedRpm, 0, 2000, 2000)
     }
 
     @JavascriptInterface
     fun sendStart() {
-        sendStart(1, 0)
+        sendStart(1, 0, 2000, 2000)
+    }
+
+    @JavascriptInterface
+    fun sendAccel(accelMs: Int) {
+        if (!isConnected) return
+        val clamped = accelMs.coerceIn(100, 10000)
+        val hi = ((clamped shr 8) and 0xFF).toByte()
+        val lo = (clamped and 0xFF).toByte()
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                out.write(byteArrayOf(ArcProtocol.CMD_SET_ACCEL, hi, lo))
+                out.flush()
+                activity.runOnUiThread {
+                    logHex(String.format("TX: 06 %02X %02X (Accel: %d ms)", hi, lo, clamped))
+                    startAckTimeout()
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun sendDecel(decelMs: Int) {
+        if (!isConnected) return
+        val clamped = decelMs.coerceIn(100, 10000)
+        val hi = ((clamped shr 8) and 0xFF).toByte()
+        val lo = (clamped and 0xFF).toByte()
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                out.write(byteArrayOf(ArcProtocol.CMD_SET_DECEL, hi, lo))
+                out.flush()
+                activity.runOnUiThread {
+                    logHex(String.format("TX: 07 %02X %02X (Decel: %d ms)", hi, lo, clamped))
+                    startAckTimeout()
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
     }
 
     @JavascriptInterface

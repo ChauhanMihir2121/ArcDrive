@@ -141,7 +141,14 @@ class MainActivity : AppCompatActivity() {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            hideSystemUI()
+            val isImeVisible = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true
+            } else {
+                false
+            }
+            if (!isImeVisible) {
+                hideSystemUI()
+            }
         }
     }
 
