@@ -247,6 +247,8 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                 readerThread = Thread({
                     startReading(btSocket?.inputStream)
                 }, "ArcBtReaderThread").apply { start() }
+
+                requestVersion()
             } catch (e: Exception) {
                 isConnected = false
                 closeSocketInternal()
@@ -370,6 +372,17 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
             } else if (type == ArcProtocol.FB_DECEL_ACK) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onDecelAck) window.ArcBT.onDecelAck($value);")
+            } else if (type == ArcProtocol.FB_MOVE_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onAngleMoveDone) window.ArcBT.onAngleMoveDone($value);")
+            } else if (type == ArcProtocol.FB_ANGLE_SPEED_ACK) {
+                cancelAckTimeout()
+                runJs("if(window.ArcBT && window.ArcBT.onAngleSpeedAck) window.ArcBT.onAngleSpeedAck($value);")
+            } else if (type == ArcProtocol.FB_VERSION_ACK) {
+                cancelAckTimeout()
+                val major = (value shr 8) and 0xFF
+                val minor = value and 0xFF
+                runJs("if(window.ArcBT && window.ArcBT.onFirmwareVersion) window.ArcBT.onFirmwareVersion($major, $minor);")
             } else if (type == ArcProtocol.FB_ERROR) {
                 cancelAckTimeout()
                 runJs("if(window.ArcBT && window.ArcBT.onErrorFrame) window.ArcBT.onErrorFrame($value);")
@@ -482,6 +495,57 @@ class BtBridge(private val activity: Activity, private val webView: WebView) {
                 activity.runOnUiThread {
                     logHex(String.format("TX: 07 %02X %02X (Decel: %d ms)", hi, lo, clamped))
                     startAckTimeout()
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun sendAngleMove(angleDeg: Int, direction: Int, speedRpm: Int) {
+        if (!isConnected) {
+            logHex("[ERROR] Not connected to ArcDrive")
+            return
+        }
+        val clampedAngle = angleDeg.coerceIn(1, 360)
+        val angHi = ((clampedAngle shr 8) and 0xFF).toByte()
+        val angLo = (clampedAngle and 0xFF).toByte()
+        val dir = (if (direction == 1) 1 else 0).toByte()
+
+        val clampedSpeed = speedRpm.coerceIn(1, 20)
+        val spdHi = ((clampedSpeed shr 8) and 0xFF).toByte()
+        val spdLo = (clampedSpeed and 0xFF).toByte()
+
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                val packet = byteArrayOf(
+                    ArcProtocol.CMD_SET_ANGLE_SPEED, spdHi, spdLo,
+                    ArcProtocol.CMD_MOVE_ANGLE, angHi, angLo, dir
+                )
+                out.write(packet)
+                out.flush()
+                activity.runOnUiThread {
+                    logHex(String.format("TX: 09 %02X %02X (Angle Speed: %d RPM) | 08 %02X %02X %02X (Move %d°, %s)",
+                        spdHi, spdLo, clampedSpeed, angHi, angLo, dir, clampedAngle, if (dir.toInt() == 0) "FWD" else "REV"))
+                }
+            } catch (e: Exception) {
+                handleIoException()
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun requestVersion() {
+        if (!isConnected) return
+        executor.execute {
+            try {
+                val out = btSocket?.outputStream ?: return@execute
+                out.write(byteArrayOf(ArcProtocol.CMD_GET_VERSION))
+                out.flush()
+                activity.runOnUiThread {
+                    logHex("TX: 0A (Request Firmware Version)")
                 }
             } catch (e: Exception) {
                 handleIoException()

@@ -1149,7 +1149,7 @@ body { display:block !important; }
                         <button onclick="clearHexLogs()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 12px; font-size: 14px; cursor: pointer; font-weight: 600;">Clear</button>
                     </div>
                     <div id="hexLogArea" style="flex: 1; width: 100%; height: 230px; background: rgba(5,10,20,0.95); border: 1px solid rgba(56,189,248,0.35); border-radius: 8px; font-family: monospace; font-size: 13px; color: #38bdf8; padding: 8px 12px; overflow-y: auto; text-align: left; box-sizing: border-box;">
-                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.1.0]</div>
+                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.2.0]</div>
                     </div>
                 </div>
             </div>
@@ -1281,7 +1281,7 @@ body { display:block !important; }
                         <span id="txt_ftMain" style="color: white; font-weight: bold; font-size: 25px;">ArcDrive</span>
                         <span id="txt_ftSub" style="font-size: 18px;">· Precision motion, engineered simply.</span>
                     </div>
-                    <div id="txt_ftVer" style="font-size: 20px;">v1.0.1</div>
+                    <div id="txt_ftVer" style="font-size: 20px;">v1.2.0</div>
                 </div>
             </div>
 
@@ -1352,6 +1352,22 @@ body { display:block !important; }
                     <button class="primary-btn" id="btnConfirmReset"
                         style="flex:1; height:40px; border-radius:8px; background: linear-gradient(180deg, #ef4444, #b91c1c); box-shadow: 0 0 14px rgba(239, 68, 68, 0.4); font-size: 14px;">Reset</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Version Mismatch Modal -->
+        <div id="versionMismatchModal"
+            style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.88); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); z-index:2000; justify-content:center; align-items:center;">
+            <div
+                style="background: linear-gradient(160deg, #1e1b4b, #0f172a); border:2px solid #ef4444; border-radius:16px; padding:22px; width:82%; box-shadow:0 12px 30px rgba(239,68,68,0.35); text-align:center;">
+                <div style="font-size:32px; margin-bottom:8px;">⚠️</div>
+                <div style="color:#f87171; font-size:17px; font-weight:bold; margin-bottom:10px;">Update Required</div>
+                <div id="versionMismatchText" style="color:#cbd5e1; font-size:13px; margin-bottom:18px; line-height:1.5;">
+                    First update firmware and hardware!<br>
+                    <span style="font-size:11px; color:#94a3b8;">Firmware version mismatch detected.</span>
+                </div>
+                <button class="primary-btn" onclick="document.getElementById('versionMismatchModal').style.display='none';"
+                    style="width:100%; height:40px; border-radius:8px; background: linear-gradient(180deg, #ef4444, #b91c1c); font-size:14px; font-weight:600;">Dismiss</button>
             </div>
         </div>
 
@@ -1443,6 +1459,36 @@ body { display:block !important; }
                                 <span
                                     style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 11px; color: #64748b; pointer-events: none;">ms</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Angle Move Speed Card -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="settings-card-title">Angle Move Speed</div>
+                            <div class="settings-card-subtitle">Speed for 90°, 180°, 270°, 360° & Custom Angle</div>
+                        </div>
+                    </div>
+                    <div class="settings-inner-box" style="flex-direction: column; padding: 12px 14px; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                            <span style="font-size: 12px; color: #94a3b8; font-weight: 500;">Angle Speed (1 - 20 RPM)</span>
+                            <span id="txtAngleSpeedVal" style="font-size: 14px; color: #38bdf8; font-weight: bold; font-family: monospace;">5 RPM</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+                            <span style="font-size: 11px; color: #64748b;">1</span>
+                            <input type="range" id="inpAngleSpeed" min="1" max="20" step="1" value="5"
+                                style="flex: 1; accent-color: #38bdf8; cursor: pointer;"
+                                oninput="document.getElementById('txtAngleSpeedVal').textContent = this.value + ' RPM';">
+                            <span style="font-size: 11px; color: #64748b;">20 RPM</span>
                         </div>
                     </div>
                 </div>
@@ -1760,7 +1806,7 @@ body { display:block !important; }
                     style="display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 10px; padding-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                     <div><strong style="color:#f1f5f9;">ArcDrive</strong> · Precision motion, engineered simply.
                     </div>
-                    <div id="settingsVersionText">v1.0.1</div>
+                    <div id="settingsVersionText">v1.2.0</div>
                 </div>
 
             </div>
@@ -1981,6 +2027,31 @@ window.ArcBT = {
     },
     onDecelAck: function(val) {
         addHexLog("[ACK] Decel Time set to " + val + " ms");
+    },
+    onAngleMoveDone: function(val) {
+        setMotorRunningState(false);
+        addHexLog("[ACK] Angle Move Complete");
+        showToast("Rotation Complete");
+    },
+    onAngleSpeedAck: function(val) {
+        addHexLog("[ACK] Angle Speed: " + val + " RPM");
+    },
+    onFirmwareVersion: function(major, minor) {
+        const fwVer = "V" + major + "." + minor + ".0";
+        addHexLog("[VERSION VERIFIED] ESP32 Firmware: " + fwVer);
+        const expectedMajor = 1;
+        const expectedMinor = 2;
+        if (major !== expectedMajor || minor !== expectedMinor) {
+            const modal = document.getElementById('versionMismatchModal');
+            const txt = document.getElementById('versionMismatchText');
+            if (txt) {
+                txt.innerHTML = "<strong style='color:#f87171; font-size:14px;'>First update firmware and hardware!</strong><br><br>App Version: <strong>v1.2.0</strong><br>Hardware Firmware: <strong style='color:#f87171;'>" + fwVer + "</strong>";
+            }
+            if (modal) modal.style.display = 'flex';
+            showToast("First update firmware and hardware!");
+        } else {
+            showToast("Hardware v1.2.0 Verified!");
+        }
     },
     onStopAck: function() {
         setAppStatus('Stopped');
@@ -2271,46 +2342,56 @@ function unpairDevice(mac, idSuffix) {
     }
 
     function presetAnimate(targetAngle, btnEl) {
-        if (dialAnimReq !== null) return; // lock out if motor is already running
+        if (dialAnimReq !== null || continuousMode) return; // lock out if motor is already running
+
+        targetAngle = parseInt(targetAngle) || 0;
+        if (targetAngle <= 0 || targetAngle > 360) {
+            showToast("Angle must be 1° - 360°");
+            return;
+        }
+
         setMotorRunningState(true, btnEl);
 
-        currentAngle = 0;
-        updateDial(0);
+        const isReverse = document.getElementById('btnReverse').classList.contains('active');
+        const invDir = document.getElementById('togInvertDir') ? document.getElementById('togInvertDir').checked : false;
+        let dirCode = isReverse ? 1 : 0;
+        if (invDir) dirCode = (dirCode === 0) ? 1 : 0;
 
-        if (targetAngle === 0) {
-            setMotorRunningState(false);
-            return;
+        const angleSpeed = parseInt(localStorage.getItem('arcdrive_angle_speed')) || 5;
+        const clampedAngleSpeed = Math.min(Math.max(angleSpeed, 1), 20);
+
+        const dirName = (dirCode === 0) ? "FWD" : "REV";
+        addHexLog("TX: 09 (Angle Speed: " + clampedAngleSpeed + " RPM) | 08 (Move " + targetAngle + "°, " + dirName + ")");
+
+        if (window.ArcNative && ArcNative.sendAngleMove) {
+            ArcNative.sendAngleMove(targetAngle, dirCode, clampedAngleSpeed);
         }
 
         let lastTime = performance.now();
         let traveled = 0;
-        targetAngle = (targetAngle % 360 + 360) % 360;
-        if (targetAngle === 0) targetAngle = 360;
-
-        const isReverse = document.getElementById('btnReverse').classList.contains('active');
-        const rpm = parseFloat(document.getElementById('speedSlider').value) || 1.0;
-        sendToEsp("MOVE," + targetAngle + "," + rpm + "," + (isReverse ? "R" : "F"));
+        const startDialAngle = currentAngle;
 
         function step(timestamp) {
             const deltaMs = timestamp - lastTime;
             lastTime = timestamp;
 
-            const rpm = parseFloat(document.getElementById('speedSlider').value) || 1.0;
-            const degreesPerMs = rpm * 0.006;
+            const degreesPerMs = clampedAngleSpeed * 0.006;
             let stepDist = degreesPerMs * deltaMs;
-
             traveled += stepDist;
 
             if (traveled >= targetAngle) {
-                currentAngle = isReverse ? (360 - (targetAngle % 360)) : targetAngle;
+                let finalAngle = dirCode === 1 ? (startDialAngle - targetAngle) : (startDialAngle + targetAngle);
+                currentAngle = (finalAngle % 360 + 360) % 360;
                 updateDial(currentAngle);
                 dialAnimReq = null;
-                setMotorRunningState(false); // unlock UI
+                if (!window.ArcNative) {
+                    setMotorRunningState(false);
+                }
                 return;
             }
 
-            currentAngle = isReverse ? (360 - (traveled % 360)) : traveled;
-            updateDial(currentAngle);
+            let dialNow = dirCode === 1 ? (startDialAngle - traveled) : (startDialAngle + traveled);
+            updateDial((dialNow % 360 + 360) % 360);
             dialAnimReq = requestAnimationFrame(step);
         }
         dialAnimReq = requestAnimationFrame(step);
@@ -2572,6 +2653,7 @@ function unpairDevice(mac, idSuffix) {
         stepsPerRev: 200, microstepping: 16,
         accel: 2000, decel: 2000,
         minSpeed: 1.0, maxSpeed: 50.0,
+        angleSpeed: 5,
         defPos: 0, afterMove: 'hold', delay: 1000,
         defDir: 'forward', invDir: false,
         rotMode: 'relative', angRange: 360,
@@ -2643,6 +2725,7 @@ function unpairDevice(mac, idSuffix) {
             decel: parseInt(document.getElementById('inpDecel').value),
             minSpeed: parseFloat(document.getElementById('inpMinSpeed').value),
             maxSpeed: parseFloat(document.getElementById('inpMaxSpeed').value),
+            angleSpeed: parseInt(document.getElementById('inpAngleSpeed').value) || 5,
             defPos: parseFloat(document.getElementById('inpDefPos').value),
             afterMove: document.getElementById('selAfterMove').value,
             delay: parseInt(document.getElementById('inpDelay').value),
@@ -2689,6 +2772,13 @@ function unpairDevice(mac, idSuffix) {
         document.getElementById('inpDecel').value = settings.decel;
         document.getElementById('inpMinSpeed').value = settings.minSpeed.toFixed(1);
         document.getElementById('inpMaxSpeed').value = settings.maxSpeed.toFixed(1);
+        const angSpd = settings.angleSpeed || 5;
+        if (document.getElementById('inpAngleSpeed')) {
+            document.getElementById('inpAngleSpeed').value = angSpd;
+        }
+        if (document.getElementById('txtAngleSpeedVal')) {
+            document.getElementById('txtAngleSpeedVal').textContent = angSpd + " RPM";
+        }
         document.getElementById('inpDefPos').value = settings.defPos.toFixed(1);
         document.getElementById('selAfterMove').value = settings.afterMove;
         document.getElementById('delayGroup').style.display = (settings.afterMove === 'delay') ? 'block' : 'none';
