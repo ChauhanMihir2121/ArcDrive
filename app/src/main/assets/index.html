@@ -1149,7 +1149,7 @@ body { display:block !important; }
                         <button onclick="clearHexLogs()" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 6px; padding: 4px 12px; font-size: 14px; cursor: pointer; font-weight: 600;">Clear</button>
                     </div>
                     <div id="hexLogArea" style="flex: 1; width: 100%; height: 230px; background: rgba(5,10,20,0.95); border: 1px solid rgba(56,189,248,0.35); border-radius: 8px; font-family: monospace; font-size: 13px; color: #38bdf8; padding: 8px 12px; overflow-y: auto; text-align: left; box-sizing: border-box;">
-                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.2.0]</div>
+                        <div style="color: #64748b;">[CONSOLE READY - ESP32 V1.3.0]</div>
                     </div>
                 </div>
             </div>
@@ -1281,7 +1281,7 @@ body { display:block !important; }
                         <span id="txt_ftMain" style="color: white; font-weight: bold; font-size: 25px;">ArcDrive</span>
                         <span id="txt_ftSub" style="font-size: 18px;">· Precision motion, engineered simply.</span>
                     </div>
-                    <div id="txt_ftVer" style="font-size: 20px;">v1.2.0</div>
+                    <div id="txt_ftVer" style="font-size: 20px;">v1.3.0</div>
                 </div>
             </div>
 
@@ -1806,7 +1806,7 @@ body { display:block !important; }
                     style="display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 10px; padding-bottom: 30px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
                     <div><strong style="color:#f1f5f9;">ArcDrive</strong> · Precision motion, engineered simply.
                     </div>
-                    <div id="settingsVersionText">v1.2.0</div>
+                    <div id="settingsVersionText">v1.3.0</div>
                 </div>
 
             </div>
@@ -2028,30 +2028,17 @@ window.ArcBT = {
     onDecelAck: function(val) {
         addHexLog("[ACK] Decel Time set to " + val + " ms");
     },
-    onAngleMoveDone: function(val) {
+    onMoveAck: function(deg) {
+        addHexLog("[ACK] Move Started: " + deg + "°");
+        showToast("Move Started: " + deg + "°");
+    },
+    onMoveDone: function(deg) {
         setMotorRunningState(false);
-        addHexLog("[ACK] Angle Move Complete");
-        showToast("Rotation Complete");
+        addHexLog("[DONE] Move Complete: " + deg + "°");
+        showToast("Rotation Complete (" + deg + "°)");
     },
-    onAngleSpeedAck: function(val) {
-        addHexLog("[ACK] Angle Speed: " + val + " RPM");
-    },
-    onFirmwareVersion: function(major, minor) {
-        const fwVer = "V" + major + "." + minor + ".0";
-        addHexLog("[VERSION VERIFIED] ESP32 Firmware: " + fwVer);
-        const expectedMajor = 1;
-        const expectedMinor = 2;
-        if (major !== expectedMajor || minor !== expectedMinor) {
-            const modal = document.getElementById('versionMismatchModal');
-            const txt = document.getElementById('versionMismatchText');
-            if (txt) {
-                txt.innerHTML = "<strong style='color:#f87171; font-size:14px;'>First update firmware and hardware!</strong><br><br>App Version: <strong>v1.2.0</strong><br>Hardware Firmware: <strong style='color:#f87171;'>" + fwVer + "</strong>";
-            }
-            if (modal) modal.style.display = 'flex';
-            showToast("First update firmware and hardware!");
-        } else {
-            showToast("Hardware v1.2.0 Verified!");
-        }
+    onAngleRpmAck: function(val) {
+        addHexLog("[ACK] Angle RPM set to " + val);
     },
     onStopAck: function() {
         setAppStatus('Stopped');
@@ -2070,6 +2057,7 @@ window.ArcBT = {
         else if (code === 2) errText = "Error: Speed Out of Range (0-50)";
         else if (code === 3) errText = "Error: Command Value Timeout";
         else if (code === 4) errText = "Error: Communication Timeout";
+        else if (code === 6) errText = "Error: Motor Busy!";
         addHexLog("[ERROR FRAME] " + errText + (code !== undefined ? " (" + code + ")" : ""));
         showToast(errText);
     },
